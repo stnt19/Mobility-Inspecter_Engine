@@ -135,6 +135,10 @@ def handler(runtime, static, token=None):
                     return self.send(200, runtime.model(meta, raw))
                 if path == '/api/infer':
                     return self.send(200, runtime.infer(raw, self.headers.get('X-Model-Sha256')))
+                if path == '/api/review-bundle':
+                    from .review_bundle import import_bundle
+                    vehicle = base64.b64decode(self.headers.get('X-Vehicle', ''), validate=True).decode('utf-8')
+                    return self.send(200, import_bundle(runtime.store, raw, vehicle))
                 if path == '/api/catalog':
                     from .catalog import validate_catalog
                     meta = json.loads(raw)

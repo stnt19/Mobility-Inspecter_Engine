@@ -30,7 +30,7 @@ APK는 인증된 임시 localhost Python 서버를 시작합니다. WebView는 �
 - 카탈로그 ZIP: catalog.json + catalog.pdf, 해시·페이지·행 좌표 검증.
 - 기존 검사 schema_version 2 메타데이터 및 AI 원본/수정 분리 유지. 장비번호·부위·촬영방식 추가.
 - 0.5.0 WebView IndexedDB 자료는 새로운 Python SQLite로 자동 이전하지 않습니다. 업데이트 전 기존 기록을 내보내고 모델/카탈로그 원본 팩을 보관하세요. 사진 포함 저장 기록의 자동 이관은 구현되지 않았습니다.
-- 이전 검수 팩 inspection.json ZIP의 Android 전용 화면은 대체되었습니다. 데이터 도구와 원본 검수 정보는 보존하며, 현재 앱에는 모델 팩/카탈로그 팩과 사진을 사용합니다.
+- 이전 inspection.json 검수 팩 ZIP도 가져올 수 있습니다. 전체 사진·카탈로그를 검증 후 한 트랜잭션으로 가져오며, 수동 검수 라벨을 AI 원본으로 표시하지 않습니다. 같은 팩 재가져오기는 기존 사용자 수정을 덮어쓰지 않습니다.
 - APK 단독 오프라인 사용에는 모델과 PDF를 먼저 가져와야 합니다. 학습 모델은 저장소에 포함하지 않습니다.
 
 ## 검증
@@ -40,3 +40,10 @@ Python 테스트는 실제 실행 가능한 테스트용 ONNX를 생성해 추�
 Android 빌드 및 기기 검증 결과는 실제 수행 결과만 별도로 기록합니다. 실제 렉스턴 사진의 정확도·갤럭시 태블릿 카메라·열/배터리·장시간 동작은 현장 검증이 필요합니다.
 
 참고 구현 문서: https://chaquo.com/chaquopy/doc/current/android.html , https://chaquo.com/chaquopy/doc/current/python.html , https://onnxruntime.ai/docs/api/python/api_summary.html
+
+## 최종 자동 검증 기록 (2026-11-05)
+
+- Python 단위·API·실제 ONNX 계약·검수 팩 테스트 38개 통과.
+- JavaScript 회귀 테스트 15개 통과.
+- Chromium 통합 테스트 3개 통과: 촬영 대상 검증, 사진→Python 추론→수정→SQLite 저장→재열기, 가상 카메라 분석 장면 고정 및 카메라 종료. 1280×800 및 768×1024 레이아웃 확인.
+- 실제 학습 가중치나 태블릿 실기기로 인식 정확도/카메라 성능을 검증한 것은 아닙니다.

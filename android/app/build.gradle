@@ -16,6 +16,7 @@ android {
 chaquopy {
     defaultConfig {
         version '3.11'
+        if (project.hasProperty('buildPythonPath')) buildPython project.property('buildPythonPath')
         pip { install 'numpy'; install 'Pillow'; install 'pypdf>=6,<7' }
     }
     sourceSets { main { srcDir "$buildDir/generated/python" } }

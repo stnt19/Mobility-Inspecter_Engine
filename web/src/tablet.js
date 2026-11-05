@@ -91,7 +91,7 @@ $('takePhoto').onclick=async()=>{try{const frame=await snapshot();await window.i
 $('freezeAnalysis').onclick=async()=>{
   const frame=lastFrame;if(!frame)return;
   const age=(performance.now()-frame.started)/1000;
-  const restored=await window.inspectionEngine.review(frame.blob,frame.result.detections);
+  const restored=await window.inspectionEngine.review(frame.blob,frame.result.detections,frame.result.model);
   if(restored)$('appStatus').textContent=`${age.toFixed(1)}초 전 분석 장면을 고정했습니다. 사진과 박스는 같은 프레임입니다.`;
 };
 $('liveAnalysis').onchange=()=>{if(!$('liveAnalysis').checked){$('liveOverlay').width=1;lastFrame=null;$('freezeAnalysis').disabled=true}};

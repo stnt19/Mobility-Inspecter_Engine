@@ -1,17 +1,12 @@
-"""Loopback-only local static server. No inference/upload API; no internet required."""
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+"""Start the bundled Python runtime (source checkout and exported packs)."""
 from pathlib import Path
-import argparse
-import functools
-
-if __name__ == '__main__':
-    p=argparse.ArgumentParser(); p.add_argument('--port',type=int,default=8765)
-    p.add_argument('--directory',default=str(Path(__file__).resolve().parent/'web'))
-    a=p.parse_args()
-    folder=Path(a.directory).resolve()
-    if not (folder/'index.html').is_file():
-        p.error('index.html not found; source checkout: --directory web/dist')
-    SimpleHTTPRequestHandler.extensions_map.update({'.mjs':'text/javascript','.wasm':'application/wasm','.webmanifest':'application/manifest+json'})
-    handler=functools.partial(SimpleHTTPRequestHandler,directory=str(folder))
-    print(f'Offline app: http://127.0.0.1:{a.port}/',flush=True)
-    ThreadingHTTPServer(('127.0.0.1',a.port),handler).serve_forever()
+import sys
+here=Path(__file__).resolve().parent
+root=here if (here/'engine').is_dir() else here.parent
+sys.path.insert(0,str(root))
+from engine.server import main
+if __name__=='__main__':
+    if '--static' not in sys.argv:
+        static=root/'web/dist' if (root/'web/dist/index.html').is_file() else root/'web'
+        sys.argv.extend(['--static',str(static)])
+    main()

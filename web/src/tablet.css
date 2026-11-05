@@ -15,3 +15,5 @@ input,textarea,.search{color:var(--ink);background:white!important;border:1px so
 #targetError{color:#c62828}.search{color:var(--ink)}.viewer{background:#17221d}.box{background:transparent}.box:hover,.box.selected{background:#ffffff22}.box span{color:#12241a}.coords input{background:white;color:var(--ink)}
 @media(min-width:1400px){body{max-width:1600px;margin:auto}}
 @media(max-width:700px){.workflow-heading,.workflow-nav{padding-left:16px;padding-right:16px}.wizard{margin:0 16px 20px;padding:20px}.mode-grid{grid-template-columns:1fr}.mode-card{min-height:110px;padding:24px}.steps{gap:6px}.steps li{font-size:12px;padding:8px}}
+
+#saveStatus{color:#087e3e}.toolbar h1{font-size:18px}

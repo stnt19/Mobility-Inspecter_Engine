@@ -27,7 +27,7 @@ def build(dist, model_zip, catalog, output, samples=(), android_assets=None):
     manifest = json.loads(manifest_bytes)
     if hashlib.sha256(model).hexdigest() != manifest['sha256']:
         raise ValueError('Model SHA-256 mismatch')
-    if manifest['input_size'] != 640 or manifest['class_schema'] != 'engine-seed-v2':
+    if manifest['input_size'] not in (640,960,1280) or manifest['class_schema'] != 'engine-seed-v2':
         raise ValueError('Unsupported model contract')
     index = build_index(catalog)
     assets_dir = dist / 'local-assets'
@@ -59,6 +59,12 @@ def build(dist, model_zip, catalog, output, samples=(), android_assets=None):
         for p in dist.rglob('*'):
             if p.is_file(): z.write(p, 'web/' + p.relative_to(dist).as_posix())
         z.write(Path(__file__).parent.parent / 'web' / 'serve.py', 'serve.py')
+        root=Path(__file__).resolve().parents[1]
+        for module in (root/'engine').glob('*.py'):
+            z.write(module,'engine/'+module.name)
+        for name in ('__init__.py','contract.py'):
+            z.write(root/'tools'/name,'tools/'+name)
+        z.write(root/'requirements.txt','requirements.txt')
         z.write(Path(__file__).parent.parent / 'web' / 'README.md', 'README.md')
         z.write(model_zip, 'android-imports/model.zip')
         catalog_zip = io.BytesIO()

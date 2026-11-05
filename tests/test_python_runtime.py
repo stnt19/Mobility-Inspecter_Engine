@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
+import zipfile
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 from http.server import ThreadingHTTPServer
@@ -16,6 +17,8 @@ from PIL import Image
 from engine.detector import Detector, Letterbox, decode, nms, validate_manifest
 from engine.store import Store, validate_session
 from engine.server import Runtime, handler
+from engine.review_bundle import import_bundle
+from tools.contract import CLASSES
 from tools.contract import TASK, CLASS_SCHEMA, candidates
 
 
@@ -46,7 +49,7 @@ def session_fixture():
     image='data:image/png;base64,'+base64.b64encode(photo()).decode()
     return dict(schema_version=2, record_type='engine_inspection_session', id='test-session',
                 title='점검', note='현장 메모', vehicle_id='TEST-01', area='엔진룸', capture_mode='부품 촬영',
-                width=100,height=80,threshold=.35, original=[dict(class_='unused')], reviewed=[],
+                width=100,height=80,threshold=.35, original=[], reviewed=[],
                 fitment_verified=False, source_image=image, display_image=image,
                 created_at='2026-11-05T10:00:00Z',updated_at='2026-11-05T10:00:00Z')
 
@@ -90,6 +93,21 @@ class DetectorTests(unittest.TestCase):
         rows[0,:,2]=[320,320,10,10,1.1]
         self.assertEqual(decode(rows,['battery'],Letterbox(640,640,640)),[])
         with self.assertRaises(ValueError):decode(rows,['battery'],Letterbox(640,640,640),float('nan'))
+
+    def test_exif_rotation_and_rgb_preprocessing(self):
+        from engine.detector import read_image
+        im=Image.new('RGB',(100,80),(10,100,180));exif=im.getexif();exif[274]=6
+        buffer=io.BytesIO();im.save(buffer,format='JPEG',exif=exif)
+        self.assertEqual(read_image(buffer.getvalue()).size,(80,100))
+        meta,raw=model_fixture();detector=Detector(meta,raw)
+        actual=[];real=detector.session
+        class Spy:
+            def run(self,names,feeds):
+                actual.append(feeds['image'].copy());return real.run(names,feeds)
+        detector.session=Spy();detector.detect(photo())
+        self.assertEqual(actual[0].shape,(1,3,640,640))
+        np.testing.assert_allclose(actual[0][0,:,0,0],[114/255]*3,rtol=1e-6)
+        np.testing.assert_allclose(actual[0][0,:,320,320],[10/255,100/255,180/255],rtol=1e-6)
 
 
 class StorageTests(unittest.TestCase):
@@ -169,6 +187,44 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(json.load(self.request('/api/sessions/test-session'))['vehicle_id'],'TEST-01')
         with self.assertRaises(HTTPError) as e:self.request('/../data.sqlite3')
         self.assertEqual(e.exception.code,404)
+
+
+class ReviewBundleTests(unittest.TestCase):
+    setUp = StorageTests.setUp
+
+    def bundle(self, change=None):
+        from pypdf import PdfWriter
+        writer=PdfWriter();writer.add_blank_page(width=100,height=100)
+        output=io.BytesIO();writer.write(output);pdf=output.getvalue();digest=hashlib.sha256(pdf).hexdigest()
+        index=dict(schema_version=1,page_count=1,source_sha256=digest,rows=[dict(id='r',part_number='P1',
+            name_ko='배터리',pdf_page=1,page_width=100,page_height=100,row_rect=[0,0,50,50],
+            diagram_pages=[1],relations={'battery':'primary'})])
+        image=io.BytesIO();Image.new('RGB',(100,80)).save(image,format='JPEG');raw=image.getvalue()
+        doc=dict(schema_version=1,class_schema=CLASS_SCHEMA,classes=CLASSES,annotation_kind='reviewed_boxes',
+            catalog_sha256=digest,images=[dict(file_name='review.jpg',width=100,height=80,
+                file_sha256=hashlib.sha256(raw).hexdigest(),objects=[{'class':'battery','bbox':[0,0,50,50]}])])
+        if change:change(doc,index)
+        result=io.BytesIO()
+        with zipfile.ZipFile(result,'w') as z:
+            z.writestr('inspection.json',json.dumps(doc));z.writestr('catalog.json',json.dumps(index))
+            z.writestr('catalog.pdf',pdf);z.writestr('images/review.jpg',raw)
+        return result.getvalue()
+
+    def test_manual_review_import_and_reimport_preserves_edits(self):
+        raw=self.bundle();result=import_bundle(self.store,raw,'TEST-01');identifier=result['ids'][0]
+        saved=self.store.session(identifier)
+        self.assertEqual(saved['original'],[]);self.assertIsNone(saved['reviewed'][0]['score'])
+        saved['note']='사용자 수정';self.store.save(saved)
+        import_bundle(self.store,raw,'TEST-01')
+        self.assertEqual(self.store.session(identifier)['note'],'사용자 수정')
+
+    def test_invalid_bundle_has_no_partial_import(self):
+        for change in (lambda d,c:d['images'][0].update(file_sha256='0'*64),
+                       lambda d,c:d['images'][0]['objects'][0].update(bbox=[0,0,101,50]),
+                       lambda d,c:c['rows'][0].update(pdf_page=2)):
+            with self.assertRaises(ValueError):import_bundle(self.store,self.bundle(change),'TEST-01')
+            self.assertEqual(self.store.sessions(),[])
+            self.assertIsNone(self.store.resource('catalog'))
 
 
 if __name__=='__main__':unittest.main()

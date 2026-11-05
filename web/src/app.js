@@ -12,7 +12,7 @@ function stopDrawing(){drawing=false;document.querySelector('.frame').classList.
 function markClean(){dirty=false;$('saveStatus').textContent='기기 저장 완료'}
 function sessionData(){const now=new Date().toISOString();return {schema_version:2,record_type:'engine_inspection_session',id:sessionId||crypto.randomUUID(),title:$('sessionTitle').value.trim()||photoName||'엔진룸 검사',note:$('sessionNote').value,created_at:createdAt||now,updated_at:now,app_version:'0.6.0',vehicle_id:$('vehicleId').value.trim(),area:$('inspectionArea').value,capture_mode:$('captureMode').value,mode:resultMode,image:photoName,width:photo.width,height:photo.height,threshold:Number($('threshold').value)/100,nms_iou:.45,model:copy(resultModel),catalog_sha256:catalog?.source_sha256??null,original:copy(original),reviewed:copy(predictions),fitment_verified:false,source_image:sourceImage,display_image:$('scene').src}}
 function status(text){$('appStatus').textContent=text}
-function update(){for(const id of ['sessionTitle','sessionNote','threshold','showExcluded'])$(id).disabled=busy; $('infer').disabled=busy||!model||!photo;$('modelImport').disabled=busy;$('catalogImport').disabled=busy;$('photo').disabled=busy;$('capture').disabled=busy;$('sample').disabled=busy;$('export').disabled=busy||!photo;$('saveSession').disabled=busy||!photo;$('history').disabled=busy;$('addBox').disabled=busy||!photo;$('editBox').disabled=busy||!selected;$('excludeBox').disabled=busy||!selected;$('clearCandidate').disabled=busy||!selected?.candidate;$('excludeBox').textContent=selected?.excluded?'제외 취소':'오탐 제외';$('allCatalog').disabled=!catalog;$('openCatalog').disabled=!catalog||!selected;$('modelCount').textContent=model?model.classes.length+'종':'—';$('resources').textContent=(model?'모델: '+model.classes.map(nameOf).join(', '):'모델: 없음')+' / '+(catalog?'카탈로그: '+catalog.rows.length+'개 행 · '+catalog.page_count+'쪽':'카탈로그: 없음')}
+function update(){for(const id of ['sessionTitle','sessionNote','threshold','showExcluded'])$(id).disabled=busy; $('infer').disabled=busy||!model||!photo;$('modelImport').disabled=busy;$('reviewImport').disabled=busy;$('catalogImport').disabled=busy;$('photo').disabled=busy;$('capture').disabled=busy;$('sample').disabled=busy;$('export').disabled=busy||!photo;$('saveSession').disabled=busy||!photo;$('history').disabled=busy;$('tabletHistory').disabled=busy;$('addBox').disabled=busy||!photo;$('editBox').disabled=busy||!selected;$('excludeBox').disabled=busy||!selected;$('clearCandidate').disabled=busy||!selected?.candidate;$('excludeBox').textContent=selected?.excluded?'제외 취소':'오탐 제외';$('allCatalog').disabled=!catalog;$('openCatalog').disabled=!catalog||!selected;$('modelCount').textContent=model?model.classes.length+'종':'—';$('resources').textContent=(model?'모델: '+model.classes.map(nameOf).join(', '):'모델: 없음')+' / '+(catalog?'카탈로그: '+catalog.rows.length+'개 행 · '+catalog.page_count+'쪽':'카탈로그: 없음')}
 function startWorker(){worker=new Worker(new URL('./inference.worker.js',import.meta.url),{type:'module'});worker.onmessage=({data:m})=>{const job=pending.get(m.id);if(!job)return;pending.delete(m.id);clearTimeout(job.timer);m.ok?job.resolve(m.result):job.reject(Error(m.error))};worker.onerror=()=>resetWorker('AI 작업자 실행 오류. 모델을 다시 가져오세요.')}
 function resetWorker(message){worker?.terminate();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error(message))}pending.clear();model=null;render();startWorker()}
 function callWorker(type,payload,transfer=[]){return new Promise((resolve,reject)=>{const id=++seq;const timer=setTimeout(()=>resetWorker('AI 작업 시간이 초과되어 중단했습니다. 모델을 다시 가져오세요.'),180000);pending.set(id,{resolve,reject,timer});worker.postMessage({id,type,...payload},transfer)})}
@@ -32,7 +32,7 @@ async function openPhoto(file,name=file.name){
  if(token!==imageVersion){bitmap.close();return}if(bitmap.width*bitmap.height>60000000){bitmap.close();throw Error('이미지는 6천만 화소 이하로 선택하세요.')}
  const scale=Math.min(1,1920/Math.max(bitmap.width,bitmap.height));const c=document.createElement('canvas');c.width=Math.round(bitmap.width*scale);c.height=Math.round(bitmap.height*scale);c.getContext('2d').drawImage(bitmap,0,0,c.width,c.height);bitmap.close();photo=c;photoName=name;$('scene').src=c.toDataURL('image/jpeg',.93);$('empty').hidden=true;$('mode').textContent=name+' · '+c.width+' × '+c.height;$('latency').textContent='—';status('사진 준비 완료. 부품 탐지를 누르세요.');changed();render();
 }
-async function infer(){if(busy||!model||!photo)return;if(predictions.length&&!confirm('다시 추론하면 현재 박스 수정과 품번 선택을 교체합니다. 계속할까요?'))return;stopDrawing();busy=true;render();status('Python 엔진으로 부품 분석 중…');try{
+async function infer(){if(busy||!model||!photo)return;if(predictions.length&&!confirm('다시 추론하면 현재 박스 수정과 품번 선택을 교체합니다. 계속할까요?'))return;stopDrawing();busy=true;render();status('기기에서 부품 분석 중…');try{
  const image=await new Promise(resolve=>photo.toBlob(resolve,'image/png'));if(!image)throw Error('사진 변환 실패');
  const result=await callWorker('infer',{image});original=copy(result.detections);predictions=fromPredictions(original);resultModel=copy(model);resultMode='python_onnx_inference';selected=null;hasResult=true;changed();$('latency').textContent=(result.elapsed_ms/1000).toFixed(2)+'초';status('AI 추론 완료 · 박스와 실제 부품을 대조하세요.');
  }catch(e){status('추론 실패: '+e.message)}finally{busy=false;render()}}
@@ -43,7 +43,7 @@ function selectRow(r){selectedRow=r;$('chooseCandidate').disabled=!catalogScope|
 function showPage(n){if(!pdf||!selectedRow)return;pageNumber=Math.max(1,Math.min(pdf.numPages,n));const generation=++pdfGeneration;pdfTask?.cancel();const page=pageNumber,scale=zoom,row=selectedRow;$('pdfStatus').textContent='원문을 여는 중…';$('pageInfo').textContent=page+' / '+pdf.numPages+'쪽';$('prevPage').disabled=page<=1;$('nextPage').disabled=page>=pdf.numPages;
  renderQueue=renderQueue.catch(()=>{}).then(async()=>{if(generation!==pdfGeneration)return;try{const p=await pdf.getPage(page);if(generation!==pdfGeneration)return;const viewport=p.getViewport({scale:1.5*scale});const canvas=$('pdfCanvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);canvas.style.maxWidth=scale>1?'none':'100%';const ctx=canvas.getContext('2d');pdfTask=p.render({canvasContext:ctx,viewport});await pdfTask.promise;if(generation!==pdfGeneration)return;if(row.pdf_page===page){const [x,y,x2,y2]=row.row_rect;ctx.strokeStyle='#e33e42';ctx.lineWidth=3;ctx.strokeRect(x*viewport.width/row.page_width,y*viewport.height/row.page_height,(x2-x)*viewport.width/row.page_width,(y2-y)*viewport.height/row.page_height)}$('pdfStatus').textContent=row.pdf_page===page?'선택한 품번 행을 빨간 테두리로 표시했습니다.':'원문 페이지 · 지시번호 '+row.callout+'을 확인하세요.';}catch(e){if(generation===pdfGeneration&&e.name!=='RenderingCancelledException')$('pdfStatus').textContent='PDF 표시 실패: '+e.message}})
 }
-async function importResource(kind,file){if(!file||busy)return;busy=true;update();status('자료를 검증하는 중…');try{let resource;if(kind==='model'){const files=await unpack(file,['manifest.json','model.onnx'],100*1024*1024);resource={manifest:JSON.parse(new TextDecoder().decode(files['manifest.json'])),bytes:files['model.onnx'].buffer};await loadModel(resource)}else{const files=await unpack(file,['catalog.json','catalog.pdf'],200*1024*1024);resource={index:JSON.parse(new TextDecoder().decode(files['catalog.json'])),bytes:files['catalog.pdf'].buffer};await loadCatalog(resource)}try{await storeResource(kind,resource);status('자료 검증 및 기기 저장 완료.')}catch(e){status('자료는 열었지만 기기 저장에 실패했습니다. 다음 실행 시 다시 가져오세요: '+e.message)}}catch(e){status('자료 가져오기 실패: '+e.message)}finally{busy=false;render()}}
+async function importResource(kind,file){if(!file||busy)return;busy=true;update();status('자료를 검증하는 중…');try{let resource;if(kind==='model'){const files=await unpack(file,['manifest.json','model.onnx'],100*1024*1024);resource={manifest:JSON.parse(new TextDecoder().decode(files['manifest.json'])),bytes:files['model.onnx'].buffer};await loadModel(resource)}else{const files=await unpack(file,['catalog.json','catalog.pdf'],90*1024*1024);resource={index:JSON.parse(new TextDecoder().decode(files['catalog.json'])),bytes:files['catalog.pdf'].buffer};await loadCatalog(resource)}try{await storeResource(kind,resource);status('자료 검증 및 기기 저장 완료.')}catch(e){status('자료는 열었지만 기기 저장에 실패했습니다. 다음 실행 시 다시 가져오세요: '+e.message)}}catch(e){status('자료 가져오기 실패: '+e.message)}finally{busy=false;render()}}
 $('infer').onclick=infer;$('threshold').oninput=()=>{if(photo)changed();render()};for(const id of ['photo','capture'])$(id).onchange=e=>{const f=e.target.files[0];if(f&&discard())openPhoto(f).catch(e=>status(e.message));e.target.value=''};
 $('sample').onchange=async e=>{const item=sampleAssets[Number(e.target.value)];if(e.target.value===''||!item||!discard())return;try{const r=await fetch(item.url);if(!r.ok)throw Error('샘플 파일 없음');await openPhoto(await r.blob(),item.name)}catch(e){status(e.message)}};
 $('modelImport').onchange=e=>{importResource('model',e.target.files[0]);e.target.value=''};$('catalogImport').onchange=e=>{importResource('catalog',e.target.files[0]);e.target.value=''};
@@ -83,13 +83,25 @@ boot().catch(e=>{busy=false;update();status('초기화 실패: '+e.message)});
 // The camera controller never publishes a result after its generation is stopped.
 window.inspectionEngine={
  ready:()=>!!model,
- async analyze(image){if(busy)throw Error('자료 처리 중입니다.');return callWorker('infer',{image})},
- async review(blob,detections=null){
+ async analyze(image){if(busy)throw Error('자료 처리 중입니다.');const used=copy(model);const result=await callWorker('infer',{image});return {...result,model:used}},
+ async review(blob,detections=null,usedModel=null){
   if(busy||!discard())return false;
   await openPhoto(blob,'현장 점검.png');
-  if(detections){original=copy(detections);predictions=fromPredictions(original);resultModel=copy(model);resultMode='python_camera_capture';hasResult=true;changed();render()}
+  if(detections){original=copy(detections);predictions=fromPredictions(original);resultModel=copy(usedModel||model);resultMode='python_camera_capture';hasResult=true;changed();render()}
   return true;
  },
  selectPhoto:()=>{$('photo').click()},
  history:()=>{$('history').click()}
+};
+
+$('reviewImport').onchange=async e=>{
+ const file=e.target.files[0];e.target.value='';if(!file||busy)return;
+ if(!$('vehicleId').value.trim()){window.showInspectionStep?.(1);$('targetError').textContent='검수 팩을 연결할 장비번호를 입력한 뒤 팩을 선택하세요.';return}
+ busy=true;update();try{
+  if(file.size>128*1024*1024)throw Error('검수 팩은 128MB 이하만 지원합니다.');
+  const r=await fetch('/api/review-bundle',{method:'POST',headers:{'Content-Type':'application/octet-stream','X-Vehicle':btoa(unescape(encodeURIComponent($('vehicleId').value.trim())))},body:file});
+  const result=await r.json();if(!r.ok)throw Error(result.error);
+  await loadCatalog(await readResource('catalog'));
+  $('offlineStatus').textContent=result.count+'개 검수 사진을 가져왔습니다. 세션 기록에서 여세요. 수동 라벨이며 AI 결과가 아닙니다.';
+ }catch(error){$('offlineStatus').textContent='검수 팩 가져오기 실패: '+error.message}finally{busy=false;render()}
 };
