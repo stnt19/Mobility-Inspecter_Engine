@@ -1,4 +1,6 @@
 plugins { id 'com.android.application'; id 'com.chaquo.python' }
+// Keep generated files outside OneDrive when Windows marks synced directories read-only.
+if (project.hasProperty('buildOutputPath')) buildDir = file(project.property('buildOutputPath'))
 android {
     namespace 'com.mobility.engine'
     compileSdk 35

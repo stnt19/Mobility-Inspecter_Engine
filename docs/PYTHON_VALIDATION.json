@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-05",
+  "apk": "Mobility-Inspecter-0.6.0-python-debug.apk",
+  "sha256": "56610dc49dffa77a6f15c827e137332d6ba1a4a824c61c74bf81dfc57a5fa4c8",
+  "bytes": 101128426,
+  "android_build": "lintDebug assembleDebug passed",
+  "lint_errors": 0,
+  "lint_warnings": 4,
+  "python_tests": 38,
+  "javascript_tests": 15,
+  "browser_tests": 3,
+  "apk_assets_match_web_build": true,
+  "physical_android_device_tested": false
+}

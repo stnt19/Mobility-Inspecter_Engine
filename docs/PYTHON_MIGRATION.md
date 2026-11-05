@@ -47,3 +47,7 @@ Android 빌드 및 기기 검증 결과는 실제 수행 결과만 별도로 기
 - JavaScript 회귀 테스트 15개 통과.
 - Chromium 통합 테스트 3개 통과: 촬영 대상 검증, 사진→Python 추론→수정→SQLite 저장→재열기, 가상 카메라 분석 장면 고정 및 카메라 종료. 1280×800 및 768×1024 레이아웃 확인.
 - 실제 학습 가중치나 태블릿 실기기로 인식 정확도/카메라 성능을 검증한 것은 아닙니다.
+
+Windows OneDrive 경로에서는 동기화된 빌드 폴더가 읽기 전용으로 바뀔 수 있습니다. `-PbuildOutputPath=C:/로컬임시폴더/mobility-build`로 산출물 경로를 분리할 수 있습니다. Python 실행 파일을 자동 탐지하지 못하면 `-PbuildPythonPath=Python3.11실행파일경로`를 지정합니다. 이 옵션은 소스 위치나 앱 내부 저장 경로를 변경하지 않습니다.
+
+Android 최종 검증: `lintDebug assembleDebug` 성공, Lint 오류 0개·경고 4개. arm64-v8a/x86_64 Python·ONNX 라이브러리와 Python 앱 모듈 포함 확인. APK 화면 파일과 최종 웹 빌드가 일치합니다. APK SHA-256: `56610dc49dffa77a6f15c827e137332d6ba1a4a824c61c74bf81dfc57a5fa4c8`. 실기기 설치·실제 카메라는 검증하지 않았습니다.
