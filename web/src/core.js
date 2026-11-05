@@ -2,7 +2,7 @@ export const CLASSES=['battery','fuse_box','air_cleaner','coolant_reservoir','fu
 export const NAMES=['배터리','퓨즈 박스','에어 클리너','냉각수 보조 탱크','연료 필터','오일 주입구 캡','오일 레벨 게이지','발전기','에어컨 컴프레서','벨트 텐셔너','EGR 밸브','워셔액 탱크'];
 export function nameOf(cls){return NAMES[CLASSES.indexOf(cls)]||cls}
 export function validateManifest(m){
- if(m?.schema_version!==1||m.task!=='rexton_sports_2023_engine_parts'||m.architecture!=='yolo11'||m.input_size!==640||m.class_schema!=='engine-seed-v2'||!Array.isArray(m.classes)||!m.classes.length||new Set(m.classes).size!==m.classes.length||m.classes.some(c=>!CLASSES.includes(c))||!/^[a-f0-9]{64}$/i.test(m.sha256))throw Error('지원하지 않는 모델 manifest입니다.');return m;
+ if(m?.schema_version!==1||m.task!=='rexton_sports_2023_engine_parts'||!['yolov8','yolo11'].includes(m.architecture)||![640,960,1280].includes(m.input_size)||m.class_schema!=='engine-seed-v2'||!Array.isArray(m.classes)||!m.classes.length||new Set(m.classes).size!==m.classes.length||m.classes.some(c=>!CLASSES.includes(c))||!/^[a-f0-9]{64}$/i.test(m.sha256))throw Error('지원하지 않는 모델 manifest입니다.');return m;
 }
 export function letterbox(width,height,size=640){
  if(!(width>0&&height>0))throw Error('이미지 크기가 올바르지 않습니다.');

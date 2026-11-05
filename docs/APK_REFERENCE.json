@@ -1,0 +1,15 @@
+{
+  "file": "military-maintenance-0.3.0-tablet-ver1.apk",
+  "sha256": "e3f60830900024e303c9b21d0ec4c0c460cf2bed446b698be811514a3585bbdd",
+  "size_bytes": 194745297,
+  "reviewed_on": "2026-11-05",
+  "method": "ZIP assets and embedded Dart source inspection",
+  "ui_reference": [
+    "ui/vision.dart",
+    "ui/components.dart"
+  ],
+  "runtime_reference": [
+    "data/local_vision.dart"
+  ],
+  "reference_apk_executed": false
+}

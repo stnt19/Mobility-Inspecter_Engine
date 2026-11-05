@@ -16,3 +16,6 @@ web/dist/
 web/local-assets/
 android/app/src/main/assets/web/
 .openai/
+
+.validation/
+.tools/

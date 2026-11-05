@@ -9,7 +9,7 @@ import * as sessions from '../src/session.js';
 class Element {
  constructor(){this.children=[];this.value='';this.checked=false;this.style={setProperty(){}};this.classList={remove(){},toggle(){}};this.parentElement={hidden:false}}
  append(e){this.children.push(e)} replaceChildren(){this.children=[]} setAttribute(){} removeAttribute(){} addEventListener(){} showModal(){this.open=true} close(){this.open=false}
- getContext(){return {drawImage(){},fillRect(){},getImageData(){return {data:new Uint8ClampedArray(640*640*4)}}}} toDataURL(){return 'data:image/jpeg;base64,AA=='}
+ getContext(){return {drawImage(){},fillRect(){},getImageData(){return {data:new Uint8ClampedArray(640*640*4)}}}} toBlob(cb){cb(new Blob(['pixels'],{type:'image/png'}))} toDataURL(){return 'data:image/jpeg;base64,AA=='}
 }
 async function harness(){
  const nodes=new Map();const get=id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id)};get('threshold').value=35;
@@ -21,7 +21,7 @@ async function harness(){
  saveSession:async s=>{if(fail)throw Error('QuotaExceeded');saved.set(s.id,structuredClone(s))},listSessions:async()=>[...saved.values()],readSession:async id=>structuredClone(saved.get(id)),
  Worker:class {postMessage(m){queueMicrotask(()=>this.onmessage({data:{id:m.id,ok:true,result:m.type==='infer'?{detections:[{class:'battery',box:[10,10,50,50],score:.9}],elapsed_ms:5}:{}}}))}terminate(){}}
  });
- let source=await readFile(new URL('../src/app.js',import.meta.url),'utf8');source=source.replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',"'https://example.test/app.js'");vm.runInContext(source,c);await new Promise(setImmediate);
+ let source=await readFile(new URL('../src/app.js',import.meta.url),'utf8');source=source.replace(/^import .*;\r?\n/gm,'').replaceAll('import.meta.url',"'https://example.test/app.js'");vm.runInContext(source,c);await new Promise(setImmediate);
  return {get,saved,run:code=>vm.runInContext(code,c),fail:()=>{fail=true}};
 }
 test('photo → inference → correction → save → reopen keeps original AI and user changes separate',async()=>{

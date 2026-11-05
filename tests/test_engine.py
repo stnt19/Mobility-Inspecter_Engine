@@ -69,11 +69,13 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(decision(b,c,.03)['accuracy_gate_passed'])
         c['map50_95']=float('nan')
         with self.assertRaises(ValueError): decision(b,c,.03)
-    def test_android_contract(self):
-        path=Path(__file__).resolve().parents[1]/'android/app/src/main/java/com/mobility/inspect/Parts.kt'
+    def test_python_and_browser_contract(self):
+        path=Path(__file__).resolve().parents[1]/'web/src/core.js'
         import re
-        ids=re.findall(r'"([^"]+)"',path.read_text(encoding='utf-8').split('val ids = listOf(')[1].split(')')[0])
+        ids=re.findall(r"'([^']+)'",path.read_text(encoding='utf-8').split('export const CLASSES=[')[1].split(']')[0])
         self.assertEqual(ids,CLASSES)
+        self.assertFalse(list((Path(__file__).resolve().parents[1]/'android').rglob('*.kt')))
+        self.assertFalse(list((Path(__file__).resolve().parents[1]/'android').rglob('*.kts')))
 
 if __name__=='__main__': unittest.main()
 

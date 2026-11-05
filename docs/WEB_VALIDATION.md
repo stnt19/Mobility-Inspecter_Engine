@@ -1,3 +1,5 @@
+> 0.5.0 구조의 이력 문서입니다. 현재 0.6.0 Python APK 실행·구조는 [전환 문서](PYTHON_MIGRATION.md)를 참고하세요.
+
 # Offline web implementation verification
 
 ## Implemented

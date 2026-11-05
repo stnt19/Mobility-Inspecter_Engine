@@ -1,1 +1,17 @@
-{"name":"mobility-engine-offline","private":true,"version":"0.5.0","type":"module","scripts":{"build":"node build.mjs","test":"node --test tests/*.test.mjs"},"dependencies":{"fflate":"0.8.2","onnxruntime-web":"1.20.1","pdfjs-dist":"4.10.38"}}
+{
+  "name": "mobility-engine-offline",
+  "private": true,
+  "version": "0.6.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "fflate": "0.8.2",
+    "pdfjs-dist": "4.10.38"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}

@@ -1,0 +1,30 @@
+plugins { id 'com.android.application'; id 'com.chaquo.python' }
+android {
+    namespace 'com.mobility.engine'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.mobility.engine'
+        minSdk 26
+        targetSdk 35
+        versionCode 6
+        versionName '0.6.0-python'
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildTypes { release { minifyEnabled false } }
+}
+chaquopy {
+    defaultConfig {
+        version '3.11'
+        pip { install 'numpy'; install 'Pillow'; install 'pypdf>=6,<7' }
+    }
+    sourceSets { main { srcDir "$buildDir/generated/python" } }
+}
+tasks.register('stagePython', Sync) {
+    from('../..') { include 'engine/*.py', 'tools/contract.py', 'tools/__init__.py' }
+    into "$buildDir/generated/python"
+}
+tasks.configureEach { if (name =~ /merge.*PythonSources/) dependsOn 'stagePython' }
+dependencies {
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.20.0'
+}
